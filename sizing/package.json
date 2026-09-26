@@ -1,0 +1,12 @@
+{
+  "name": "stoppable-streams-sizing",
+  "private": true,
+  "type": "module",
+  "description": "Min-UTxO and transaction-size figures for exploration.md §7",
+  "scripts": {
+    "start": "node stream-sizing.mjs"
+  },
+  "dependencies": {
+    "@evolution-sdk/evolution": "0.5.14"
+  }
+}
