@@ -68,6 +68,9 @@ aiken build
 cd sizing && npm install && node stream-sizing.mjs
 ```
 
+CI (`.github/workflows/ci.yml`) runs all three on every push, with aiken 1.1.24, and checks that
+the committed `plutus.json` holds the validators the source compiles to.
+
 ## Licence
 
 Apache-2.0, as contracts-library. The three files under `lib/` named above are contracts-library's (Apache-2.0), unchanged. Written with AI assistance (Claude).

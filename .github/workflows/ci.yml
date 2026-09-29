@@ -1,0 +1,58 @@
+# The tests, the blueprint and the sizing script, on every push. Nothing here touches a chain.
+# aiken 1.1.24 rather than the 1.1.22 aiken.toml names: before 1.1.24 aiken printed no errors when
+# stdout was not a terminal (aiken-lang/aiken#1438), which a CI log never is. The validator it
+# compiles is byte for byte the one 1.1.22 compiles.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  aiken:
+    name: aiken check and the blueprint
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: aiken-lang/setup-aiken@v1
+        with:
+          version: v1.1.24
+      # The same run the README gives: 1,000 cases per property, and a fixed seed so a failure
+      # can be replayed.
+      - run: aiken check --max-success 1000 --seed 39
+      # plutus.json is committed, and it is what anyone using the validator reads. The build must
+      # give the same validators: the same title, hash and compiled code. (The compiler version line
+      # is expected to differ.)
+      - name: the committed plutus.json is what the source compiles to
+        run: |
+          jq -S '[.validators[] | {title, hash, compiledCode}]' plutus.json > committed.json
+          aiken build
+          jq -S '[.validators[] | {title, hash, compiledCode}]' plutus.json > built.json
+          diff committed.json built.json
+          echo "$(jq length built.json) validator(s), hashes: $(jq -r '[.[].hash] | unique | join(", ")' built.json)"
+
+  sizing:
+    name: sizing script
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: sizing/package-lock.json
+      - run: npm ci
+        working-directory: sizing
+      - run: node stream-sizing.mjs
+        working-directory: sizing
